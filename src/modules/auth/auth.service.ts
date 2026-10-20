@@ -107,27 +107,13 @@ const loginUser = async (payload: ILoginPayload) => {
     throw new AppError(httpStatus.UNAUTHORIZED, "Invalid email or password");
   }
 
-  // Check if account is banned
+  // Find user
   const user = await prisma.user.findUnique({
     where: { id: authResult.user.id },
   });
 
   if (!user) {
     throw new AppError(httpStatus.UNAUTHORIZED, "Invalid email or password");
-  }
-
-  if (user.banned) {
-    if (user.banExpires && user.banExpires < new Date()) {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { banned: false, banReason: null, banExpires: null },
-      });
-    } else {
-      throw new AppError(
-        httpStatus.FORBIDDEN,
-        `Your account has been banned.${user.banReason ? ` Reason: ${user.banReason}` : ""}`,
-      );
-    }
   }
 
   // Check if account is inactive
@@ -210,9 +196,6 @@ const getNewRefreshToken = async (refreshToken: string) => {
     throw new AppError(httpStatus.UNAUTHORIZED, "User not found");
   }
 
-  if (user.banned) {
-    throw new AppError(httpStatus.FORBIDDEN, "Account is banned");
-  }
 
   const jwtPayload = {
     id: user.id,

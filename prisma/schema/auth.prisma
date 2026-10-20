@@ -8,9 +8,6 @@ model User {
   updatedAt     DateTime @updatedAt
 
   role       String?   @default("student") // student | mentor | admin
-  banned     Boolean?  @default(false)
-  banReason  String?
-  banExpires DateTime?
 
   mustChangePassword Boolean @default(false)
   isActive           Boolean @default(true)

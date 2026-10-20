@@ -10,7 +10,7 @@ const setCookie = (
 };
 
 const getCookie = (req: Request, key: string) => {
-    return req.cookies[key];
+    return req.cookies?.[key];
 };
 
 const clearCookie = (res: Response, key: string, option: CookieOptions) => {

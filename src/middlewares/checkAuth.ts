@@ -1,12 +1,10 @@
-import { Request, Response, NextFunction } from "express";
+import { NextFunction, Request, Response } from "express";
 import httpStatus from "http-status";
-import { fromNodeHeaders } from "better-auth/node";
-import { catchAsync } from "../shared/catchAsync";
-import { prisma } from "../lib/prisma";
 import AppError from "../errors/AppError";
+import { prisma } from "../lib/prisma";
 import { jwtUtils } from "../utils/jwtUtils";
 import { envVeriables } from "../config/envConfig";
-import { auth } from "../lib/auth";
+import { cookieUtil } from "../utils/cookie";
 
 declare global {
   namespace Express {
@@ -18,88 +16,89 @@ declare global {
 }
 
 export const checkAuth = (...requiredRoles: string[]) => {
-  return catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-    let user: any = null;
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      let user: any = null;
 
-    // 1. Try resolving user from JWT access token (Header or Cookie)
-    const token =
-      req.cookies?.accessToken ||
-      req.headers.authorization?.split(" ")[1];
+      // 1. Get access token from cookie or Authorization header
+      const accessToken =
+        cookieUtil.getCookie(req, "accessToken") ||
+        req.headers.authorization?.split(" ")[1];
 
-    if (token) {
-      const result = jwtUtils.verifyToken(token, envVeriables.JWT_SECRET_KEY);
-      if (result.seccess && result.data) {
-        const decoded = result.data as { id?: string; email?: string };
-        if (decoded.id || decoded.email) {
+      // 2. If access token exists, verify JWT and find user
+      if (accessToken) {
+        const decoded = jwtUtils.verifyToken(
+          accessToken,
+          envVeriables.JWT_SECRET_KEY,
+        );
+        if (decoded.seccess && decoded.data) {
+          const payload = decoded.data as { id?: string; email?: string };
           user = await prisma.user.findUnique({
-            where: decoded.id ? { id: decoded.id } : { email: decoded.email! },
+            where: payload.id ? { id: payload.id } : { email: payload.email! },
           });
         }
       }
-    }
 
-    // 2. If no valid JWT, fall back to Better Auth session
-    if (!user) {
-      try {
-        const headers = fromNodeHeaders(req.headers);
-        const sessionData = await auth.api.getSession({
-          headers,
-        });
-        if (sessionData && sessionData.user) {
-          user = await prisma.user.findUnique({
-            where: { id: sessionData.user.id },
+      // 3. If no user from JWT, fall back to Better Auth session cookie
+      if (!user) {
+        const sessionToken =
+          cookieUtil.getCookie(req, "better-auth.session_token") ||
+          cookieUtil.getCookie(req, "__Secure-session_token") ||
+          cookieUtil.getCookie(req, "sessionToken");
+
+        if (sessionToken) {
+          const session = await prisma.session.findFirst({
+            where: {
+              token: sessionToken,
+              expiresAt: { gt: new Date() },
+            },
+            include: {
+              user: true,
+            },
           });
-          req.session = sessionData.session;
+
+          if (session?.user) {
+            user = session.user;
+            req.session = session;
+          }
         }
-      } catch {
-        // Session lookup failed, user remains null
       }
-    }
 
-    // 3. Reject unauthenticated request
-    if (!user) {
-      throw new AppError(
-        httpStatus.UNAUTHORIZED,
-        "You are not authorized. Please log in.",
-      );
-    }
-
-    // 4. Check banned status
-    if (user.banned) {
-      if (user.banExpires && user.banExpires < new Date()) {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { banned: false, banReason: null, banExpires: null },
-        });
-      } else {
+      // 4. Reject unauthenticated request
+      if (!user) {
         throw new AppError(
-          httpStatus.FORBIDDEN,
-          `Account is banned.${user.banReason ? ` Reason: ${user.banReason}` : ""}`,
+          httpStatus.UNAUTHORIZED,
+          "You are not authorized. Please log in.",
         );
       }
-    }
 
-    // 5. Check active status
-    if (user.isActive === false) {
-      throw new AppError(
-        httpStatus.FORBIDDEN,
-        "Account is deactivated. Please contact administrator.",
-      );
-    }
-
-    // 6. Role check
-    if (requiredRoles.length > 0) {
-      const userRole = (user.role || "").toUpperCase();
-      const allowedRoles = requiredRoles.map((r) => r.toUpperCase());
-      if (!allowedRoles.includes(userRole)) {
+      // 5. Check if user account is deactivated
+      if (user.isActive === false) {
         throw new AppError(
           httpStatus.FORBIDDEN,
-          "You do not have permission to access this resource",
+          "Account is deactivated. Please contact administrator.",
         );
       }
-    }
 
-    req.user = user;
-    next();
-  });
+      // 6. Role authorization check
+      if (requiredRoles.length > 0) {
+        const userRole = (user.role || "").toUpperCase();
+        const allowedRoles = requiredRoles.map((r) => r.toUpperCase());
+        if (!allowedRoles.includes(userRole)) {
+          throw new AppError(
+            httpStatus.FORBIDDEN,
+            "You do not have permission to access this resource",
+          );
+        }
+      }
+
+      // 7. Attach user to request context
+      req.user = user;
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
 };
+
+export default checkAuth;
