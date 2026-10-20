@@ -12,4 +12,5 @@ model ReviewLog {
   reviewer   User?   @relation(fields: [reviewerId], references: [id], onDelete: SetNull)
 
   @@index([submissionId, createdAt])
+  @@index([reviewerId])
 }

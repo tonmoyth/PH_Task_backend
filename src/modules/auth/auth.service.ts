@@ -130,6 +130,14 @@ const loginUser = async (payload: ILoginPayload) => {
     }
   }
 
+  // Check if account is inactive
+  if (user.isActive === false) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "Your account is inactive. Please contact administrator.",
+    );
+  }
+
   // Issue JWT Access Token & Refresh Token
   const jwtPayload = {
     id: user.id,

@@ -79,7 +79,15 @@ export const checkAuth = (...requiredRoles: string[]) => {
       }
     }
 
-    // 5. Role check
+    // 5. Check active status
+    if (user.isActive === false) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "Account is deactivated. Please contact administrator.",
+      );
+    }
+
+    // 6. Role check
     if (requiredRoles.length > 0) {
       const userRole = (user.role || "").toUpperCase();
       const allowedRoles = requiredRoles.map((r) => r.toUpperCase());

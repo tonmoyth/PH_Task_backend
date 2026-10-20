@@ -13,6 +13,7 @@ model User {
   banExpires DateTime?
 
   mustChangePassword Boolean @default(false)
+  isActive           Boolean @default(true)
   createdById        String?
   createdBy          User?   @relation("MentorCreator", fields: [createdById], references: [id], onDelete: SetNull)
   createdMentors     User[]  @relation("MentorCreator")
@@ -24,6 +25,7 @@ model User {
   reviewLogs          ReviewLog[]
 
   @@index([role])
+  @@index([role, isActive])
   @@map("user")
 }
 
