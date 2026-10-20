@@ -10,10 +10,13 @@ export const createRateLimiter = (options: {
   maxAttempts: number;
   windowSeconds: number;
   message?: string;
+  keyGenerator?: (req: Request) => string;
 }) => {
   return async (req: Request, res: Response, next: NextFunction) => {
-    const ip = req.ip || req.socket.remoteAddress || "unknown_ip";
-    const key = `ratelimit:${options.keyPrefix}:${ip}`;
+    const identifier = options.keyGenerator
+      ? options.keyGenerator(req)
+      : (req.ip || req.socket.remoteAddress || "unknown_ip");
+    const key = `ratelimit:${options.keyPrefix}:${identifier}`;
     const { maxAttempts, windowSeconds } = options;
     const errorMessage =
       options.message ||
@@ -87,4 +90,12 @@ export const resetPasswordRateLimiter = createRateLimiter({
   maxAttempts: 5,
   windowSeconds: 60,
   message: "Too many reset attempts. Please try again after 1 minute.",
+});
+
+export const submissionRateLimiter = createRateLimiter({
+  keyPrefix: "submission",
+  maxAttempts: 15,
+  windowSeconds: 60,
+  keyGenerator: (req: Request) => req.user?.id || req.ip || req.socket.remoteAddress || "unknown",
+  message: "Too many submission attempts. Please try again after 1 minute.",
 });

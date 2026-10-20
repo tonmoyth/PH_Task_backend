@@ -2,7 +2,7 @@ model Submission {
   id                String           @id @default(cuid())
   projectName       String
   repoUrl           String
-  repoUrlNormalized String           @unique
+  repoUrlNormalized String
   liveUrl           String
   description       String           @db.Text
   status            SubmissionStatus @default(PENDING)
@@ -20,6 +20,7 @@ model Submission {
 
   reviewLogs ReviewLog[]
 
+  @@unique([studentId, repoUrlNormalized])
   @@index([status, createdAt])
   @@index([studentId, createdAt])
 }
