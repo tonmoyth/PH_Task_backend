@@ -8,6 +8,10 @@ import { Role } from "../../generated/prisma/enums";
 
 const router = express.Router();
 
+// =========================================================================
+// STUDENT SUBMISSION ROUTES
+// =========================================================================
+
 // 1. Create a submission (POST /api/v1/submissions)
 router.post(
   "/",
@@ -47,6 +51,50 @@ router.delete(
   checkAuth(Role.STUDENT),
   validateRequest(SubmissionsValidation.submissionIdParamZodSchema),
   SubmissionsController.withdrawSubmission,
+);
+
+// =========================================================================
+// MENTOR / ADMIN DASHBOARD ROUTES
+// (Static routes like /stats registered BEFORE dynamic /:id to prevent routing collisions)
+// =========================================================================
+
+// A. List all submissions (GET /api/v1/submissions)
+router.get(
+  "/",
+  checkAuth(Role.MENTOR, Role.ADMIN),
+  validateRequest(SubmissionsValidation.getAllSubmissionsQueryZodSchema),
+  SubmissionsController.getAllSubmissions,
+);
+
+// B. Overall submission statistics (GET /api/v1/submissions/stats)
+router.get(
+  "/stats",
+  checkAuth(Role.MENTOR, Role.ADMIN),
+  SubmissionsController.getSubmissionStats,
+);
+
+// C. Get submission details by ID (GET /api/v1/submissions/:id)
+router.get(
+  "/:id",
+  checkAuth(Role.MENTOR, Role.ADMIN),
+  validateRequest(SubmissionsValidation.submissionIdParamZodSchema),
+  SubmissionsController.getSubmissionById,
+);
+
+// D. Review a submission (PATCH /api/v1/submissions/:id/review)
+router.patch(
+  "/:id/review",
+  checkAuth(Role.MENTOR, Role.ADMIN),
+  validateRequest(SubmissionsValidation.reviewSubmissionZodSchema),
+  SubmissionsController.reviewSubmission,
+);
+
+// E. Review history for a submission (GET /api/v1/submissions/:id/history)
+router.get(
+  "/:id/history",
+  checkAuth(Role.MENTOR, Role.ADMIN),
+  validateRequest(SubmissionsValidation.submissionIdParamZodSchema),
+  SubmissionsController.getSubmissionHistory,
 );
 
 export const SubmissionRoutes = router;

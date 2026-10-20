@@ -153,9 +153,80 @@ const getMySubmissionsQueryZodSchema = z.object({
     .optional(),
 });
 
+const getAllSubmissionsQueryZodSchema = z.object({
+  query: z
+    .object({
+      page: z
+        .string()
+        .regex(/^\d+$/, "Page must be a positive integer")
+        .optional(),
+      limit: z
+        .string()
+        .regex(/^\d+$/, "Limit must be a positive integer")
+        .optional(),
+      status: z.enum(["PENDING", "APPROVED", "REJECTED"]).optional(),
+      search: z.string().trim().optional(),
+      searchTerm: z.string().trim().optional(),
+      sort: z
+        .enum([
+          "createdAt",
+          "updatedAt",
+          "projectName",
+          "status",
+          "resubmitCount",
+          "reviewedAt",
+        ])
+        .optional(),
+      sortBy: z
+        .enum([
+          "createdAt",
+          "updatedAt",
+          "projectName",
+          "status",
+          "resubmitCount",
+          "reviewedAt",
+        ])
+        .optional(),
+      order: z.enum(["asc", "desc"]).optional(),
+      sortOrder: z.enum(["asc", "desc"]).optional(),
+    })
+    .optional(),
+});
+
+const reviewSubmissionZodSchema = z.object({
+  params: z.object({
+    id: z.string().trim().min(1, "Submission ID is required"),
+  }),
+  body: z
+    .object({
+      status: z.enum(["APPROVED", "REJECTED"], {
+        message: "Status must be either APPROVED or REJECTED",
+      }),
+      reason: z
+        .string()
+        .trim()
+        .max(2000, "Reason cannot exceed 2000 characters")
+        .optional(),
+    })
+    .strict()
+    .superRefine((data, ctx) => {
+      if (data.status === "REJECTED") {
+        if (!data.reason || data.reason.trim().length === 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Rejection reason is mandatory when status is REJECTED",
+            path: ["reason"],
+          });
+        }
+      }
+    }),
+});
+
 export const SubmissionsValidation = {
   createSubmissionZodSchema,
   updateSubmissionZodSchema,
   submissionIdParamZodSchema,
   getMySubmissionsQueryZodSchema,
+  getAllSubmissionsQueryZodSchema,
+  reviewSubmissionZodSchema,
 };
