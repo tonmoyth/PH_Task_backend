@@ -1,0 +1,78 @@
+model User {
+  id            String   @id
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  role       String?   @default("student") // student | mentor | admin
+  banned     Boolean?  @default(false)
+  banReason  String?
+  banExpires DateTime?
+
+  mustChangePassword Boolean @default(false)
+  createdById        String?
+  createdBy          User?   @relation("MentorCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdMentors     User[]  @relation("MentorCreator")
+
+  sessions            Session[]
+  accounts            Account[]
+  submissions         Submission[] @relation("StudentSubmissions")
+  reviewedSubmissions Submission[] @relation("SubmissionReviewer")
+  reviewLogs          ReviewLog[]
+
+  @@index([role])
+  @@map("user")
+}
+
+model Session {
+  id             String   @id
+  expiresAt      DateTime
+  token          String   @unique
+  ipAddress      String?
+  userAgent      String?
+  impersonatedBy String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  password              String?
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}

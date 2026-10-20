@@ -1,0 +1,15 @@
+model ReviewLog {
+  id         String           @id @default(cuid())
+  fromStatus SubmissionStatus
+  toStatus   SubmissionStatus
+  reason     String?          @db.Text
+  createdAt  DateTime         @default(now())
+
+  submissionId String
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  reviewerId String?
+  reviewer   User?   @relation(fields: [reviewerId], references: [id], onDelete: SetNull)
+
+  @@index([submissionId, createdAt])
+}

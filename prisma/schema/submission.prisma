@@ -1,0 +1,25 @@
+model Submission {
+  id                String           @id @default(cuid())
+  projectName       String
+  repoUrl           String
+  repoUrlNormalized String           @unique
+  liveUrl           String
+  description       String           @db.Text
+  status            SubmissionStatus @default(PENDING)
+  rejectionReason   String?          @db.Text
+  resubmitCount     Int              @default(0)
+  reviewedAt        DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  studentId String
+  student   User   @relation("StudentSubmissions", fields: [studentId], references: [id], onDelete: Cascade)
+
+  reviewedById String?
+  reviewedBy   User?   @relation("SubmissionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  reviewLogs ReviewLog[]
+
+  @@index([status, createdAt])
+  @@index([studentId, createdAt])
+}
