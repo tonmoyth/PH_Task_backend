@@ -77,23 +77,34 @@ const createMentor = async (
   // 2. Generate cryptographically secure temporary password
   const temporaryPassword = generateSecureTemporaryPassword();
 
-  // 3. Create user and credential account using Better Auth admin API
+  // 3. Create user and credential account using Better Auth API
   let createdUser: any;
   try {
-    const authResult = await auth.api.createUser({
-      body: {
-        name: trimmedName,
-        email: normalizedEmail,
-        password: temporaryPassword,
-        role: "user" as any,
-        data: {
-          role: "MENTOR",
-          mustChangePassword: true,
-          isActive: true,
-          createdById: adminUserId,
+    let authResult: any;
+    if (typeof (auth.api as any).createUser === "function") {
+      authResult = await (auth.api as any).createUser({
+        body: {
+          name: trimmedName,
+          email: normalizedEmail,
+          password: temporaryPassword,
+          role: "user" as any,
+          data: {
+            role: "MENTOR",
+            mustChangePassword: true,
+            isActive: true,
+            createdById: adminUserId,
+          },
         },
-      },
-    });
+      });
+    } else {
+      authResult = await auth.api.signUpEmail({
+        body: {
+          name: trimmedName,
+          email: normalizedEmail,
+          password: temporaryPassword,
+        },
+      });
+    }
 
     if (!authResult || !authResult.user) {
       throw new AppError(

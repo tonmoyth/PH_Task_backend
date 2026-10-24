@@ -538,14 +538,8 @@ const getSubmissionById = async (submissionId: string) => {
   return submission;
 };
 
-/**
- * D. PATCH /submissions/:id/review — Review Submission (Mentor / Admin)
- * Critical Concurrency & Atomicity:
- * - Employs atomic conditional update (updateMany where id and status=PENDING).
- * - Distinguishes 404 Not Found from 409 Conflict.
- * - Creates ReviewLog only inside the same transaction when conditional update succeeds.
- * - Invalidates the Redis statistics cache strictly after successful commit.
- */
+//__________________________________
+
 const reviewSubmission = async (
   reviewerId: string,
   submissionId: string,
@@ -634,6 +628,14 @@ const reviewSubmission = async (
 
   return updatedSubmission;
 };
+
+
+
+
+
+//______________________________________
+
+
 
 /**
  * E. GET /submissions/:id/history — Review History (Mentor / Admin)

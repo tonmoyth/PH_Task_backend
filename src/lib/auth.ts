@@ -21,6 +21,11 @@ export const auth = betterAuth({
 
   baseURL: envVeriables.BETTER_AUTH_URL,
   secret: envVeriables.BETTER_AUTH_SECRET,
+  trustedOrigins: [
+    envVeriables.FRONTEND_URL || "http://localhost:3000",
+    "http://localhost:3000",
+    "http://localhost:5000",
+  ],
 
   user: {
     additionalFields: {
@@ -52,9 +57,9 @@ export const auth = betterAuth({
   },
 
   plugins: [
-    admin({
-      defaultRole: "STUDENT",
-    }),
+    // admin({
+    //   defaultRole: "STUDENT",
+    // }),
     emailOTP({
       expiresIn: 10 * 60, // 10 minutes
       otpLength: 6,

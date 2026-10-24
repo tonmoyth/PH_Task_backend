@@ -81,7 +81,7 @@ router.get(
   SubmissionsController.getSubmissionById,
 );
 
-// D. Review a submission (PATCH /api/v1/submissions/:id/review)
+// D. Review a submission (PATCH /api/v1/submissions/:id/review
 router.patch(
   "/:id/review",
   checkAuth(Role.MENTOR, Role.ADMIN),

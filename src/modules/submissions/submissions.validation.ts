@@ -197,30 +197,13 @@ const reviewSubmissionZodSchema = z.object({
   params: z.object({
     id: z.string().trim().min(1, "Submission ID is required"),
   }),
-  body: z
-    .object({
-      status: z.enum(["APPROVED", "REJECTED"], {
-        message: "Status must be either APPROVED or REJECTED",
-      }),
-      reason: z
-        .string()
-        .trim()
-        .max(2000, "Reason cannot exceed 2000 characters")
-        .optional(),
-    })
-    .strict()
-    .superRefine((data, ctx) => {
-      if (data.status === "REJECTED") {
-        if (!data.reason || data.reason.trim().length === 0) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Rejection reason is mandatory when status is REJECTED",
-            path: ["reason"],
-          });
-        }
-      }
-    }),
+  body: z.object({
+    status: z.enum(["APPROVED", "REJECTED"], "Status must be APPROVED or REJECTED"),
+    reason: z.string().trim().min(10, "Reason must be at least 10 characters").max(1000, "Reason cannot exceed 1000 characters").optional(),
+  })
 });
+
+
 
 export const SubmissionsValidation = {
   createSubmissionZodSchema,
